@@ -1,6 +1,6 @@
 # Modern C++ Ray Tracer
 
-![C++17](https://img.shields.io/badge/C%2B%2B-17-blue) ![Threads](https://img.shields.io/badge/Multithreaded-Yes-green) ![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![C++17](https://img.shields.io/badge/C%2B%2B-17-blue) ![Threads](https://img.shields.io/badge/Multithreaded-Yes-green) 
 
 ## Описание
 
