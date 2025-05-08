@@ -44,18 +44,14 @@ Vec3 unit_vector(Vec3 v);
 // Глобальный генератор одного случайного double в [0,1)
 double random_double();
 
-
-/* Случайная точка в полусфёре вокруг нормали
+// Случайная точка в полусфёре вокруг данной нормали
 inline Vec3 random_in_hemisphere(const Vec3& normal) {
-    // сначала случайное в единичной сфере
-    Vec3 in_unit_sphere;
-    do {
-        in_unit_sphere = Vec3::random(-1,1);
-    } while (in_unit_sphere.length_squared() >= 1.0);
-    // если в том же полушарии, что нормаль — оставляем, иначе инвертируем
-    if (dot(in_unit_sphere, normal) > 0.0)
-        return unit_vector(in_unit_sphere);
-    else
-        return unit_vector(-in_unit_sphere);
+    while (true) {
+        auto p = Vec3::random(-1,1);
+        if (p.length_squared() >= 1) continue;
+        if (dot(p, normal) > 0.0) // в том же полушарии, что normal
+            return unit_vector(p);
+        else
+            return unit_vector(-p);
+    }
 }
-*/

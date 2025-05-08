@@ -1,78 +1,84 @@
-// src/Cone.cpp
-
 #include "Cone.h"
-#include "Vec3.h"
-#include <cmath>
-#include <algorithm>
+#include <limits>
 
-// Helper: build an orthonormal basis (u,v,w) with w = axis
-static void build_orthonormal_basis(const Vec3& w, Vec3& u, Vec3& v) {
-    Vec3 a = (std::fabs(w.x) > 0.9) ? Vec3(0,1,0) : Vec3(1,0,0);
-    u = unit_vector(cross(a, w));
-    v = cross(w, u);
-}
+bool Cone::hit(
+    const Ray& r,
+    double t_min,
+    double t_max,
+    HitRecord& rec
+) const {
+    // переводим в локальную систему с началом в apex
+    Vec3 O = r.origin - apex;
+    Vec3 D = r.direction;
 
-bool Cone::hit(const Ray& r, double t_min, double t_max, HitRecord& rec) const {
-    // 1) Build local frame
-    Vec3 w = axis;  // already unit
-    Vec3 u, v;
-    build_orthonormal_basis(w, u, v);
+    double k   = std::tan(half_angle);
+    double k2  = k*k;
 
-    // 2) Translate ray origin so apex is at (0,0,0)
-    Vec3 co = r.origin - apex;
+    // проекции на ось
+    double dV = dot(D, axis);
+    double oV = dot(O, axis);
 
-    // 3) Express ray in local coordinates of cone
-    double Dx = dot(r.direction, u);
-    double Dy = dot(r.direction, w);
-    double Dz = dot(r.direction, v);
+    // компоненты перпендикулярные оси
+    Vec3 Dp = D - dV*axis;
+    Vec3 Op = O - oV*axis;
 
-    double Ox = dot(co, u);
-    double Oy = dot(co, w);
-    double Oz = dot(co, v);
+    double A = dot(Dp, Dp) - k2 * dV*dV;
+    double B = 2*( dot(Dp, Op) - k2 * dV*oV );
+    double C = dot(Op, Op) - k2 * oV*oV;
 
-    // 4) Cone equation: x^2 + z^2 - (tan(angle))^2 y^2 = 0
-    double k    = std::tan(angle);
-    double k2   = k * k;
-
-    double A = Dx*Dx + Dz*Dz - k2 * (Dy*Dy);
-    double B = 2*(Ox*Dx + Oz*Dz - k2 * (Oy*Dy));
-    double C = Ox*Ox + Oz*Oz - k2 * (Oy*Oy);
-
-    // 5) Solve quadratic At^2 + Bt + C = 0
     double disc = B*B - 4*A*C;
     if (disc < 0) return false;
-    double sqrtd = std::sqrt(disc);
+    double sqrt_disc = std::sqrt(disc);
 
-    // Two candidate t's
-    double t0 = (-B - sqrtd) / (2*A);
-    double t1 = (-B + sqrtd) / (2*A);
+    auto check_root = [&](double t) {
+        if (t < t_min || t > t_max) return false;
+        // узнать, попадает ли точка на конечный отрезок конуса
+        double y = oV + t*dV;
+        if (y < 0 || y > height) return false;
 
-    // Pick the nearest valid root in [t_min, t_max]
-    double t = t0;
-    if (t < t_min || t > t_max) {
-        t = t1;
-        if (t < t_min || t > t_max)
-            return false;
-    }
+        // заполняем HitRecord
+        rec.t = t;
+        rec.p = r.at(t);
 
-    // 6) Check that the hit lies between apex (y=0) and base (y=height)
-    double y = Oy + t*Dy;
-    if (y < 0 || y > height)
-        return false;
+        // нормаль конуса: вектор из точки к боковой поверхности
+        // сначала вычисляем высотную проекцию
+        Vec3 proj = axis * dot(rec.p - apex, axis);
+        // радиусная составляющая
+        Vec3 rad  = (rec.p - apex) - proj;
+        // нормаль — направление комбинированного градиента
+        Vec3 n = unit_vector(rad - k2 * proj);
+        rec.set_face_normal(r, n);
+        rec.mat_ptr = mat_ptr;
+        return true;
+    };
 
-    // 7) Fill hit record
-    rec.t = t;
-    rec.p = r.at(t);
-    rec.mat_ptr = mat_ptr;
+    // проверяем два корня
+    double t0 = (-B - sqrt_disc) / (2*A);
+    if (check_root(t0)) return true;
+    double t1 = (-B + sqrt_disc) / (2*A);
+    if (check_root(t1)) return true;
 
-    // 8) Compute normal: gradient of F(x,y,z)=x^2+z^2-k^2 y^2 is (2x, -2k^2 y, 2z)
-    //    in local coords at P' = (Ox+t*Dx, Oy+t*Dy, Oz+t*Dz)
-    Vec3 P_local(Ox + t*Dx, y, Oz + t*Dz);
-    Vec3 N_local(P_local.x, -k2 * P_local.y, P_local.z);
+    return false;
+}
 
-    // Transform normal back to world space
-    Vec3 normal = unit_vector(u * N_local.x + w * N_local.y + v * N_local.z);
-    rec.set_face_normal(r, normal);
+bool Cone::bounding_box(
+    double /*time0*/,
+    double /*time1*/,
+    AABB& output_box
+) const {
+    // простая AABB, которая покрывает вершину и основание
+    Point3 base_center = apex + axis * height;
+    double r = height * std::tan(half_angle);
 
+    // для каждой координаты берем min/max из {apex, base_center} и отнимаем/прибавляем r
+    double min_x = std::fmin(apex.x, base_center.x) - r;
+    double min_y = std::fmin(apex.y, base_center.y) - r;
+    double min_z = std::fmin(apex.z, base_center.z) - r;
+    double max_x = std::fmax(apex.x, base_center.x) + r;
+    double max_y = std::fmax(apex.y, base_center.y) + r;
+    double max_z = std::fmax(apex.z, base_center.z) + r;
+
+    output_box = AABB(Point3(min_x, min_y, min_z),
+                      Point3(max_x, max_y, max_z));
     return true;
 }
