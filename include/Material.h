@@ -1,8 +1,9 @@
 #pragma once
 
+#include <memory>
 #include "Ray.h"
 #include "Hittable.h"
-#include "Vec3.h"
+#include "Texture.h"
 
 struct ScatterRecord {
     Ray specular_ray;
@@ -24,69 +25,61 @@ public:
 // Lambertian (диффузное)
 class Lambertian : public Material {
 public:
-    explicit Lambertian(const Color& a);
+    std::shared_ptr<Texture> albedo;
+    Lambertian(std::shared_ptr<Texture> a) : albedo(a) {}
 
-    bool scatter(
-        const Ray& r_in,
-        const HitRecord& rec,
-        ScatterRecord& srec
-    ) const override;
-
-private:
-    Color albedo;
+    virtual bool scatter(
+        const Ray& r_in, const HitRecord& rec, ScatterRecord& srec
+    ) const override {
+        auto scatter_direction = rec.normal + Vec3::random(-1,1);
+        if (scatter_direction.length_squared() < 1e-8)
+            scatter_direction = rec.normal;
+        srec.specular_ray = Ray(rec.p, unit_vector(scatter_direction));
+        srec.attenuation  = albedo->value(rec.u, rec.v, rec.p);
+        srec.is_specular  = false;
+        return true;
+    }
 };
 
-// Metal (отражающее)
+
+
 class Metal : public Material {
 public:
-    Metal(const Color& a, double f);
+    Vec3 albedo;
+    double fuzz;
+    Metal(const Vec3&, double);
 
-    bool scatter(
+    virtual bool scatter(
         const Ray& r_in,
         const HitRecord& rec,
         ScatterRecord& srec
     ) const override;
-
-private:
-    Color albedo;
-    double fuzz;
 };
 
-// Dielectric (преломляющее стекло)
+
 class Dielectric : public Material {
 public:
-    explicit Dielectric(double index_of_refraction);
-
-    bool scatter(
+    double ir;
+    Dielectric(double);
+        virtual bool scatter(
         const Ray& r_in,
         const HitRecord& rec,
         ScatterRecord& srec
     ) const override;
-
 private:
-    double ir;  // index of refraction
-
-    // Вспомогательные функции — будут определены в Material.cpp
-    static double reflectance(double cosine, double ref_idx);
-    static Vec3 refract(const Vec3& uv, const Vec3& n, double etai_over_etat);
+    static double reflectance(double, double);
 };
+
 
 // Экранно-диффузный источник света
 class DiffuseLight : public Material {
 public:
-    Color emit;  // собственное излучение
-
-    DiffuseLight(const Color& c) : emit(c) {}
-
-    // не рассеиваем луч — он поглощается и даёт только emission
-    virtual bool scatter(
-        const Ray& r_in, const HitRecord& rec, ScatterRecord& srec
-    ) const override {
-        return false;
-    }
-
-    // по умолчанию scatter==false означает: возвращаем emit
-    virtual Color emitted() const {
-        return emit;
-    }
+    Color emit;
+    DiffuseLight(const Color&);
+        virtual bool scatter(
+        const Ray& r_in,
+        const HitRecord& rec,
+        ScatterRecord& srec
+    ) const override;
+    virtual Color emitted() const override { return emit; }
 };
