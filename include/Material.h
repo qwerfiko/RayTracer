@@ -1,54 +1,65 @@
 #pragma once
 
-#include <memory>
 #include "Ray.h"
 #include "Hittable.h"
 #include "Texture.h"
+#include <memory>
+#include "Vec3.h"
 
+// утилиты для преломления/отражения
+inline Vec3 reflect(const Vec3& v, const Vec3& n) {
+    return v - 2*dot(v,n)*n;
+}
+
+inline Vec3 refract(const Vec3& uv, const Vec3& n, double etai_over_etat) {
+    double cos_theta = dot(-uv, n);
+    Vec3 r_out_perp =  etai_over_etat * (uv + cos_theta*n);
+    Vec3 r_out_parallel = -std::sqrt(fabs(1.0 - r_out_perp.length_squared())) * n;
+    return r_out_perp + r_out_parallel;
+}
+
+// Заполняет информацию о рассеянном луче
 struct ScatterRecord {
-    Ray specular_ray;
-    bool is_specular;
-    Color attenuation;
+    Ray       specular_ray;
+    bool      is_specular;
+    Color     attenuation;
 };
 
 class Material {
 public:
-    virtual ~Material() = default;
+    // scatter возвращает true, если луч рассеялся / отражён / преломлён
+    // заполняет srec
     virtual bool scatter(
         const Ray& r_in,
         const HitRecord& rec,
         ScatterRecord& srec
     ) const = 0;
+
+    // эмиссия (для источников света). По умолчанию — ноль.
     virtual Color emitted() const { return Color(0,0,0); }
+
+    virtual ~Material() = default;
 };
 
-// Lambertian (диффузное)
 class Lambertian : public Material {
 public:
+    // albedo хранит текстуру (например, ConstantTexture или WoodTexture)
     std::shared_ptr<Texture> albedo;
-    Lambertian(std::shared_ptr<Texture> a) : albedo(a) {}
+
+    explicit Lambertian(std::shared_ptr<Texture> a);
 
     virtual bool scatter(
-        const Ray& r_in, const HitRecord& rec, ScatterRecord& srec
-    ) const override {
-        auto scatter_direction = rec.normal + Vec3::random(-1,1);
-        if (scatter_direction.length_squared() < 1e-8)
-            scatter_direction = rec.normal;
-        srec.specular_ray = Ray(rec.p, unit_vector(scatter_direction));
-        srec.attenuation  = albedo->value(rec.u, rec.v, rec.p);
-        srec.is_specular  = false;
-        return true;
-    }
+        const Ray& r_in,
+        const HitRecord& rec,
+        ScatterRecord& srec
+    ) const override;
 };
-
-
 
 class Metal : public Material {
 public:
-    Vec3 albedo;
+    Color albedo;
     double fuzz;
-    Metal(const Vec3&, double);
-
+    Metal(const Color& a, double f);
     virtual bool scatter(
         const Ray& r_in,
         const HitRecord& rec,
@@ -56,30 +67,31 @@ public:
     ) const override;
 };
 
-
 class Dielectric : public Material {
 public:
-    double ir;
-    Dielectric(double);
-        virtual bool scatter(
+    explicit Dielectric(double index_of_refraction);
+
+    // This must match the base class exactly:
+    virtual bool scatter(
         const Ray& r_in,
         const HitRecord& rec,
         ScatterRecord& srec
     ) const override;
+
 private:
-    static double reflectance(double, double);
+    double ir;
+    static double reflectance(double cosine, double ref_idx);
 };
 
 
-// Экранно-диффузный источник света
 class DiffuseLight : public Material {
 public:
-    Color emit;
-    DiffuseLight(const Color&);
-        virtual bool scatter(
+    std::shared_ptr<Texture> emit;
+    explicit DiffuseLight(std::shared_ptr<Texture> a);
+    virtual bool scatter(
         const Ray& r_in,
         const HitRecord& rec,
         ScatterRecord& srec
-    ) const override;
-    virtual Color emitted() const override { return emit; }
+    ) const override { return false; }
+    virtual Color emitted() const override;
 };

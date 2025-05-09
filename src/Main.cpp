@@ -1,32 +1,35 @@
 // src/Main.cpp
 
-#include <limits>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <cmath>
-#include <algorithm>
-#include <thread>
+#include <fstream>
 #include <vector>
+#include <thread>
 #include <mutex>
 #include <atomic>
 #include <chrono>
-#include <iomanip>   // для std::setprecision
+#include <iomanip>
+#include <cmath>
+#include <algorithm>
+#include <filesystem>
+using namespace std;
+namespace fs = std::filesystem;
 
 #include "Vec3.h"
 #include "Ray.h"
 #include "HittableList.h"
 #include "Sphere.h"
-#include "Material.h"
-#include "Camera.h"
-#include "BVH.h"
-#include "XZRect.h"
-#include "XYRect.h"
 #include "Box.h"
 #include "Cone.h"
+#include "BVH.h"
+#include "Camera.h"
+#include "Material.h"
+#include "Texture.h"
+#include "ConstantTexture.h"
 #include "NoiseTexture.h"
 #include "WoodTexture.h"
-#include "ConstantTexture.h"
+#include "XYRect.h"
+#include "XZRect.h"
+#include "YZRect.h"
 
 
 using namespace std;
@@ -104,11 +107,13 @@ int main() {
 
 
     // 2) Материалы
-    auto mat_ground = make_shared<Lambertian>(
-        make_shared<ConstantTexture>(Color(0.8,0.8,0.0))
-    );
+    auto mat_ground  = std::make_shared<Lambertian>(
+    std::make_shared<ConstantTexture>(Color(0.8,0.8,0.0))
+);
     // светящаяся плоскость
-    auto mat_light = make_shared<DiffuseLight>(Color(6.0,6.0,6.0));
+    auto mat_light = std::make_shared<DiffuseLight>(
+    std::make_shared<ConstantTexture>(Color(4.0,4.0,4.0))
+);
 
     // диффузные шары
     auto mat_diffuse = make_shared<Lambertian>(
@@ -141,32 +146,37 @@ int main() {
 
     // 3.3) Пирамидка из трёх шаров
     // нижний ряд
-    world.add(make_shared<Sphere>(Point3(1.0, 0.5, -1.0), 0.5, mat_diffuse));
-    world.add(make_shared<Sphere>(Point3(-1.0, 0.5, -1.5), 0.5, mat_glass));
+    world.add(make_shared<Sphere>(Point3(2.0, 0.5, -1.5), 0.5, mat_diffuse));
+    world.add(make_shared<Sphere>(Point3(1.0, 0.5, -1.5), 0.5, mat_glass));
     world.add(make_shared<Sphere>(Point3(0.0, 0.5, -1.0), 0.5, mat_metal));
 
     // procedural textures
    auto noise_tex = make_shared<NoiseTexture>(4.0);
    auto mat_noise = make_shared<Lambertian>(noise_tex);
 
-   auto wood_tex  = make_shared<WoodTexture>(10.0);
-   auto mat_wood  = make_shared<Lambertian>(wood_tex);
+   auto wood_tex = std::make_shared<WoodTexture>(
+    25.0,
+    std::make_shared<ConstantTexture>(Color(0.8, 0.7, 0.55)),
+    std::make_shared<ConstantTexture>(Color(0.35,0.20,0.10)),
+    0.2);
+
+    auto mat_wood = std::make_shared<Lambertian>(wood_tex);
 
    // куб с «шумовой» текстурой слева
    world.add(make_shared<Box>(
-       Point3(-3.0, 0.0, -2.5),
-       Point3(-2.0, 1.0, -1.5),
-       mat_noise
+       Point3(-2.0, 0.0, -2.5),
+       Point3(-1.0, 1.0, -1.5),
+       mat_wood
    ));
 
-   // конус с «деревянной» текстурой справа
+   /* конус с «деревянной» текстурой справа
    world.add(make_shared<Cone>(
        Point3(2.0, 2.0, -2.0),   // вершина конуса
-       Vec3(0.,-1.0, 0.0),       // ось вдоль Y
+       Vec3(0.0,-2.0, 0.0),       // ось вдоль Y
        M_PI/6,                    // угол 30°
        2.0,                       // высота
        mat_wood
-   ));
+   )); */
 
     // BVH для ускорения
     vector<HittablePtr> objs = world.objects;

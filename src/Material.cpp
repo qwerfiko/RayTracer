@@ -1,26 +1,50 @@
-// src/Material.cpp
-
 #include "Material.h"
-#include "Vec3.h"    // для Vec3, dot(), unit_vector(), random_double()
-#include <cmath>     // для std::sqrt, std::pow, std::fabs
+#include "WoodTexture.h"   // для bump-mapping
+#include <cmath>
+#include <random>
 
-// --- Утилиты для отражения и преломления (они не лежат в Vec3) ---
+// ---- Lambertian ----
 
-static Vec3 reflect(const Vec3& v, const Vec3& n) {
-    return v - 2*dot(v,n)*n;
+Lambertian::Lambertian(std::shared_ptr<Texture> a)
+  : albedo(std::move(a))
+{}
+
+bool Lambertian::scatter(
+    const Ray& r_in,
+    const HitRecord& rec,
+    ScatterRecord& srec
+) const {
+    // геометрическая нормаль
+    Vec3 N = rec.normal;
+
+    // bump-mapping для WoodTexture
+    if (auto wt = dynamic_cast<const WoodTexture*>(albedo.get())) {
+        const Perlin& noise = wt->perlin;
+        const double eps   = 1e-3;
+        double h0 = noise.turb(rec.p);
+        double hx = noise.turb(rec.p + Vec3(eps,0,0));
+        double hy = noise.turb(rec.p + Vec3(0,eps,0));
+        double hz = noise.turb(rec.p + Vec3(0,0,eps));
+        Vec3 grad((hx-h0)/eps, (hy-h0)/eps, (hz-h0)/eps);
+        N = unit_vector(N + wt->bump_strength * grad);
+    }
+
+    // рассеиваем в случайном направлении вокруг N
+    Vec3 scatter_direction = N + Vec3::random(-1,1);
+    if (scatter_direction.length_squared() < 1e-8)
+        scatter_direction = N;
+
+    srec.specular_ray = Ray(rec.p, unit_vector(scatter_direction));
+    srec.attenuation  = albedo->value(rec.u, rec.v, rec.p);
+    srec.is_specular  = false;
+    return true;
 }
 
-static Vec3 refract(const Vec3& uv, const Vec3& n, double etai_over_etat) {
-    double cos_theta = dot(-uv, n);
-    Vec3 r_out_perp   =  etai_over_etat * (uv + cos_theta*n);
-    Vec3 r_out_parallel = -std::sqrt(std::fabs(1.0 - r_out_perp.length_squared())) * n;
-    return r_out_perp + r_out_parallel;
-}
+// ---- Metal ----
 
-// --- Metal ---
-
-Metal::Metal(const Vec3& a, double f)
-  : albedo(a), fuzz(f < 1 ? f : 1) {}
+Metal::Metal(const Color& a, double f)
+  : albedo(a), fuzz(f < 1? f : 1)
+{}
 
 bool Metal::scatter(
     const Ray& r_in,
@@ -28,63 +52,51 @@ bool Metal::scatter(
     ScatterRecord& srec
 ) const {
     Vec3 reflected = reflect(unit_vector(r_in.direction), rec.normal);
-    srec.specular_ray = Ray(rec.p, reflected + fuzz * Vec3::random());
+    srec.specular_ray = Ray(rec.p, reflected + fuzz*Vec3::random());
     srec.attenuation  = albedo;
     srec.is_specular  = true;
-    return dot(srec.specular_ray.direction, rec.normal) > 0;
+    return (dot(srec.specular_ray.direction, rec.normal) > 0);
 }
 
-// --- Dielectric (glass) ---
+// ---- Dielectric ----
 
 Dielectric::Dielectric(double index_of_refraction)
-  : ir(index_of_refraction) {}
+  : ir(index_of_refraction)
+{}
 
 bool Dielectric::scatter(
     const Ray& r_in,
     const HitRecord& rec,
     ScatterRecord& srec
 ) const {
-    srec.attenuation = Color(1.0, 1.0, 1.0);
+    srec.attenuation = Color(1,1,1);
     srec.is_specular = true;
-
     double refraction_ratio = rec.front_face ? (1.0/ir) : ir;
     Vec3 unit_dir = unit_vector(r_in.direction);
-
     double cos_theta = std::fmin(dot(-unit_dir, rec.normal), 1.0);
     double sin_theta = std::sqrt(1.0 - cos_theta*cos_theta);
-
     bool cannot_refract = refraction_ratio * sin_theta > 1.0;
     Vec3 direction;
-    if (cannot_refract
-        || Dielectric::reflectance(cos_theta, refraction_ratio) > random_double())
-    {
+    if (cannot_refract || Dielectric::reflectance(cos_theta, refraction_ratio) > Vec3::random().x)
         direction = reflect(unit_dir, rec.normal);
-    } else {
+    else
         direction = refract(unit_dir, rec.normal, refraction_ratio);
-    }
-
     srec.specular_ray = Ray(rec.p, direction);
     return true;
 }
 
 double Dielectric::reflectance(double cosine, double ref_idx) {
-    // Schlick’s approximation
     auto r0 = (1 - ref_idx) / (1 + ref_idx);
     r0 = r0 * r0;
-    return r0 + (1 - r0) * std::pow((1 - cosine), 5);
+    return r0 + (1 - r0)*std::pow((1 - cosine),5);
 }
 
-// --- DiffuseLight (эмиттер) ---
+// ---- DiffuseLight ----
 
-DiffuseLight::DiffuseLight(const Color& c)
-  : emit(c) {}
+DiffuseLight::DiffuseLight(std::shared_ptr<Texture> a)
+  : emit(std::move(a))
+{}
 
-bool DiffuseLight::scatter(
-    const Ray&,
-    const HitRecord&,
-    ScatterRecord&
-) const {
-    return false;
+Color DiffuseLight::emitted() const {
+    return emit->value(0,0,Vec3());  // либо передавать u,v,p, но чаще здесь постоянная
 }
-
-// emitted() реализован inline в Material.h
