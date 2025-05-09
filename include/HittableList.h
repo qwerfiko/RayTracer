@@ -1,3 +1,4 @@
+// Список Hittable-объектов: собирает вместе hit() всех примитивов.
 #pragma once
 
 #include <vector>

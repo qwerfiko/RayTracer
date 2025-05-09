@@ -1,5 +1,5 @@
 #include "HittableList.h"
-#include <utility>    // для std::move
+#include <utility>
 
 HittableList::HittableList() = default;
 

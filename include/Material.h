@@ -1,3 +1,6 @@
+// Абстрактный класс материала:
+// - scatter() — отражение/рассеяние лучей,
+// - emitted() — светящиеся материалы.
 #pragma once
 
 #include "Ray.h"
@@ -7,6 +10,7 @@
 #include "Vec3.h"
 
 // утилиты для преломления/отражения
+
 inline Vec3 reflect(const Vec3& v, const Vec3& n) {
     return v - 2*dot(v,n)*n;
 }
@@ -18,7 +22,7 @@ inline Vec3 refract(const Vec3& uv, const Vec3& n, double etai_over_etat) {
     return r_out_perp + r_out_parallel;
 }
 
-// Заполняет информацию о рассеянном луче
+
 struct ScatterRecord {
     Ray       specular_ray;
     bool      is_specular;
@@ -35,7 +39,7 @@ public:
         ScatterRecord& srec
     ) const = 0;
 
-    // эмиссия (для источников света). По умолчанию — ноль.
+    // эмиссия (для источников света)
     virtual Color emitted() const { return Color(0,0,0); }
 
     virtual ~Material() = default;
@@ -43,7 +47,7 @@ public:
 
 class Lambertian : public Material {
 public:
-    // albedo хранит текстуру (например, ConstantTexture или WoodTexture)
+    // albedo хранит текстуру
     std::shared_ptr<Texture> albedo;
 
     explicit Lambertian(std::shared_ptr<Texture> a);
@@ -71,7 +75,6 @@ class Dielectric : public Material {
 public:
     explicit Dielectric(double index_of_refraction);
 
-    // This must match the base class exactly:
     virtual bool scatter(
         const Ray& r_in,
         const HitRecord& rec,

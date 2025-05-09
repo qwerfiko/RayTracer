@@ -1,3 +1,4 @@
+// Комбинирует две ConstantTexture по шуму для имитации древесины.
 #pragma once
 
 #include "Texture.h"
@@ -16,6 +17,7 @@ public:
     // sc       – масштаб колец,
     // lightTex – светлые волокна, darkTex – тёмные,
     // bumpStr  – сила bump-mapping
+
     WoodTexture(double sc,
                 std::shared_ptr<Texture> lightTex,
                 std::shared_ptr<Texture> darkTex,
@@ -27,7 +29,6 @@ public:
     {}
 
     virtual Color value(double u, double v, const Vec3& p) const override {
-        // турбулентность и кольца
         double n     = perlin.turb(p * scale, 8) * 0.5;
         double rings = p.x * scale + 10.0 * n;
         double sine  = std::sin(rings);

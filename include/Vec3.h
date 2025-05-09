@@ -1,3 +1,6 @@
+// Vec3: Вектор/точка в 3D.
+// Содержит операции +, -, *, /, скалярное и векторное произведение,
+// а также генерацию случайных векторов.
 #pragma once
 #include <cmath>
 #include <iostream>
@@ -20,16 +23,14 @@ public:
     static Vec3 random();
     static Vec3 random(double min, double max);
 
-    // Добавляем доступ по индексу
     double operator[](int i) const;
     double& operator[](int i);
 };
 
-// Псевдонимы
+
 using Point3 = Vec3;
 using Color  = Vec3;
 
-// Свободные функции
 std::ostream& operator<<(std::ostream &out, const Vec3 &v);
 Vec3 operator+(const Vec3 &u, const Vec3 &v);
 Vec3 operator-(const Vec3 &u, const Vec3 &v);
@@ -44,12 +45,12 @@ Vec3 unit_vector(Vec3 v);
 // Глобальный генератор одного случайного double в [0,1)
 double random_double();
 
-// Случайная точка в полусфёре вокруг данной нормали
+// Случайная точка в полусфере вокруг данной нормали
 inline Vec3 random_in_hemisphere(const Vec3& normal) {
     while (true) {
         auto p = Vec3::random(-1,1);
         if (p.length_squared() >= 1) continue;
-        if (dot(p, normal) > 0.0) // в том же полушарии, что normal
+        if (dot(p, normal) > 0.0)
             return unit_vector(p);
         else
             return unit_vector(-p);

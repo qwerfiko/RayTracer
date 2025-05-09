@@ -1,3 +1,4 @@
+// Строит бинарное дерево по объектам для быстрого отсечения множества объекто
 #pragma once
 
 #include "Hittable.h"
@@ -6,6 +7,7 @@
 /**
  * @brief Ускоряющая структура BVH-узел для коллекции объектов.
  */
+
 class BVHNode : public Hittable {
 public:
     BVHNode();

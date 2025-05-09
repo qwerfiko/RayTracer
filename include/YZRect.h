@@ -1,4 +1,3 @@
-// include/YZRect.h
 #pragma once
 #include <memory>
 #include "Hittable.h"

@@ -1,3 +1,5 @@
+// Ray: луч с началом origin и направлением direction.
+// Метод at(t) возвращает точку вдоль луча.
 #pragma once
 
 #include "Vec3.h"

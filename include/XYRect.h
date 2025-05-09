@@ -1,4 +1,3 @@
-// include/XYRect.h
 #pragma once
 #include <memory>
 #include "Hittable.h"

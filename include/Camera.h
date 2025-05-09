@@ -1,3 +1,6 @@
+// Настройка параметров камеры:
+// - положение, точка съёмки, вектор «вверх»,
+// - угол обзора, апертура (размытие по ГРИПу), дистанция фокуса.
 #pragma once
 
 #include "Vec3.h"
@@ -24,6 +27,7 @@ public:
      * @param aperture  апертура (диаметр объектива)
      * @param focus_dist  дистанция фокуса
      */
+
     Camera(
         Point3 lookfrom,
         Point3 lookat,
@@ -37,6 +41,7 @@ public:
     /**
      * @brief Сгенерировать луч, проходящий через точку (s,t) на экране.
      */
+
     Ray get_ray(double s, double t) const;
 
 private:

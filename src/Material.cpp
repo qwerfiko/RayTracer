@@ -1,5 +1,5 @@
 #include "Material.h"
-#include "WoodTexture.h"   // для bump-mapping
+#include "WoodTexture.h"
 #include <cmath>
 #include <random>
 
@@ -14,7 +14,6 @@ bool Lambertian::scatter(
     const HitRecord& rec,
     ScatterRecord& srec
 ) const {
-    // геометрическая нормаль
     Vec3 N = rec.normal;
 
     // bump-mapping для WoodTexture
@@ -29,7 +28,7 @@ bool Lambertian::scatter(
         N = unit_vector(N + wt->bump_strength * grad);
     }
 
-    // рассеиваем в случайном направлении вокруг N
+    // Рассеиваем в случайном направлении вокруг N
     Vec3 scatter_direction = N + Vec3::random(-1,1);
     if (scatter_direction.length_squared() < 1e-8)
         scatter_direction = N;
@@ -98,5 +97,4 @@ DiffuseLight::DiffuseLight(std::shared_ptr<Texture> a)
 {}
 
 Color DiffuseLight::emitted() const {
-    return emit->value(0,0,Vec3());  // либо передавать u,v,p, но чаще здесь постоянная
-}
+    return emit->value(0,0,Vec3());

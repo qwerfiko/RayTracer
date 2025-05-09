@@ -1,10 +1,12 @@
+// Определяет интерфейс «можно ли пересечь лучом».
+// HitRecord хранит точку пересечения, нормаль, материал.
 #pragma once
 
 #include "Ray.h"
 #include "AABB.h"
 #include <memory>
 
-struct Material;   // впереди объявляем
+struct Material;
 
 struct HitRecord {
      Point3 p;
@@ -12,7 +14,7 @@ struct HitRecord {
      std::shared_ptr<Material> mat_ptr;
 
     double t;
-    double u, v;              // текстурные координаты
+    double u, v;
      bool front_face;
 
      inline void set_face_normal(const Ray& r, const Vec3& outward_normal) {
@@ -26,6 +28,7 @@ public:
     virtual ~Hittable() = default;
 
     // проверка пересечения луча с объектом
+
     virtual bool hit(
         const Ray& r,
         double t_min,
@@ -34,6 +37,7 @@ public:
     ) const = 0;
 
     // получение ограничивающей коробки в заданный интервал времени
+
     virtual bool bounding_box(
         double time0,
         double time1,

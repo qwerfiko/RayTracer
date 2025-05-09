@@ -1,4 +1,4 @@
-// include/ConstantTexture.h
+// Простая текстура, возвращает один цвет.
 #pragma once
 
 #include "Texture.h"

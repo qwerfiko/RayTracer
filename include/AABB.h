@@ -1,7 +1,9 @@
+// Axis-Aligned Bounding Box: проверка пересечений и объединение двух коробок.
+//
 #pragma once
 
 #include "Vec3.h"
-#include "Ray.h"       // ← обязательно
+#include "Ray.h"
 
 class AABB {
 public:

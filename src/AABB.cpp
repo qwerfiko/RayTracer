@@ -1,6 +1,6 @@
 #include "AABB.h"
-#include <algorithm> // std::swap
-#include <cmath>     // std::fmin, std::fmax
+#include <algorithm>
+#include <cmath>
 
 AABB::AABB() : minimum(Point3(0,0,0)), maximum(Point3(0,0,0)) {}
 AABB::AABB(const Point3& a, const Point3& b) : minimum(a), maximum(b) {}

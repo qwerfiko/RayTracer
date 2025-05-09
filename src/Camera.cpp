@@ -3,10 +3,8 @@
 #include <random>
 
 namespace {
-    // Потокобезопасный RNG
     static thread_local std::mt19937 gen(std::random_device{}());
 
-    // Случайное число в диапазоне [min, max)
     inline double random_double(double min, double max) {
         std::uniform_real_distribution<double> dist(min, max);
         return dist(gen);

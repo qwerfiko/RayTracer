@@ -1,4 +1,3 @@
-// src/Box.cpp
 #include "Box.h"
 #include <memory>
 

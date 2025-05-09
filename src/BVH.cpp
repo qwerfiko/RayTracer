@@ -1,7 +1,7 @@
 #include "BVH.h"
 #include <algorithm>
-#include <cstdlib>     // std::rand
-#include <iostream>    // для сообщений об ошибках
+#include <cstdlib>
+#include <iostream>
 
 namespace {
     // Вспомогательная функция: сравнить две AABB по координате axis

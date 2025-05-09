@@ -1,4 +1,3 @@
-// src/Vec3.cpp
 #include "Vec3.h"
 
 #include <cmath>
@@ -6,7 +5,6 @@
 #include <iostream>
 
 namespace {
-    // Генератор случайных чисел для метода Vec3::random()
     static thread_local std::mt19937 generator(std::random_device{}());
     static inline double random_double_unit() {
         static std::uniform_real_distribution<double> dist(0.0, 1.0);
@@ -67,7 +65,6 @@ Vec3 Vec3::random(double min, double max) {
     return Vec3(dist(generator), dist(generator), dist(generator));
 }
 
-// свободные функции
 
 std::ostream& operator<<(std::ostream &out, const Vec3 &v) {
     return out << v.x << ' ' << v.y << ' ' << v.z;
@@ -113,13 +110,11 @@ Vec3 unit_vector(Vec3 v) {
     return v / v.length();
 }
 
-// единственное внешнее определение глобальной функции
 double random_double() {
-    // возвращаем одну координату из случайного Vec3
+
     return Vec3::random().x;
 }
 
-// (опционально) в диапазоне [min, max)
 double random_double(double min, double max) {
     return Vec3::random(min, max).x;
 }
