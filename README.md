@@ -2,16 +2,18 @@
 
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue) ![Threads](https://img.shields.io/badge/Multithreaded-Yes-green) 
 
+![image (3)](https://github.com/user-attachments/assets/60fa96be-7c4a-48ee-89f9-e60c2e0b1c16)
+
+
 ## Описание
 
 Этот проект — учебный трассер лучей на **C++17**, демонстрирующий основные приёмы построения физически корректных изображений:
 - **Векторная арифметика** (класс `Vec3`)
-- **Лучи и пересечения** (`Ray`, `Hittable`, `Sphere`, `BVH`)
-- **Материалы**: диффузный, металлический, диэлектрик (стекло), эмиттер (`DiffuseLight`)
+- **Лучи и пересечения** (`Ray`, `Hittable`, `Sphere`, `BVH`) с поддержкой отражений, преломлений и эмиссии.
+- **Материалы**: диффузный, металлический, диэлектрик (стекло), эмиттер (`DiffuseLight`) и процедурные текстуры (дерево)
 - **Антиалиасинг** (jitter-сэмплинг), **гамма-коррекция**, **многопоточность**
 - **Буферизованный вывод** для корректного parallel‐рендеринга
-- **Физические приборы** — различные оптические объекты: призмы, линзы, дифракционные решётки, поляроиды (для экспериментов с волновыми эффектами)
-
+- **Ambient Occlusion** (простейший вариант shadows+AO).
 ## Особенности
 
 - **Реалистичный металл** и **стекло** с отражениями и преломлениями  
@@ -28,23 +30,54 @@
 
 ```text
 RayTracerProject/
-├── include/                  # Заголовочные файлы
-│   ├── Vec3.h
-│   ├── Ray.h
-│   ├── Hittable.h
-│   ├── Sphere.h
-│   ├── BVH.h
-│   ├── Material.h
-│   ├── Camera.h
-├── src/                      # Исходные .cpp
-│   ├── Vec3.cpp
-│   ├── Ray.cpp
-│   ├── Sphere.cpp
-│   ├── BVH.cpp
-│   ├── Material.cpp
-│   └── Main.cpp
-├── output/                   # Результат рендеринга
+├── include/
+│ ├── Vec3.h
+│ ├── Ray.h
+│ ├── Hittable.h
+│ ├── HittableList.h
+│ ├── Sphere.h
+│ ├── Box.h
+│ ├── Cone.h
+│ ├── AABB.h
+│ ├── BVH.h
+│ ├── Camera.h
+│ ├── Material.h
+│ ├── Texture.h
+│ ├── ConstantTexture.h
+│ ├── NoiseTexture.h
+│ └── WoodTexture.h
+└── src/
+├── Vec3.cpp
+├── Ray.cpp
+├── Hittable.cpp
+├── Sphere.cpp
+├── Box.cpp
+├── Cone.cpp
+├── BVH.cpp
+├── Camera.cpp
+├── Material.cpp
+├── Texture.cpp
+├── Perlin.cpp
+└── Main.cpp
 ```
+
+## Алгоритм трассировки
+Для каждого пикселя генерируется N случайных лучей (anti-aliasing).
+
+**ray_color()** рекурсивно:
+
+- Ищет ближайший hit в диапазоне [ε, +∞).
+
+- Вызывает material.scatter(), получая цвет отражённой/преломлённой составляющей и attenuation.
+
+- Добавляет emission для источников (DiffuseLight).
+
+- Для теней/AO дополнительно бросает shadow‐ray и затемняет вклады.
+
+**Ускорение**: при большом числе объектов — BVH ускоряет поиск пересечений.
+
+**Параллелизация**: каждый поток обрабатывает строки изображения независимо.
+
 
 
 ## Сборка и запуск
@@ -76,9 +109,7 @@ RayTracerProject/
   const int image_width  = 1920;
   const int image_height = static_cast<int>(image_width / aspect_ratio);
   ```
-- Экранное сглаживание
- ```cpp
-  const int samples_per_pixel = 100;
-```
--BVH включаются автоматически после заполнения **world**
-
+- Параметры рендера: *samples_per_pixel* = 500, *max_depth* = 50, *AO_samples* = 32
+- С помощью *world.add* добавляются объекты в сцену с соответсвующим параметром *mat_*
+- Выставляется положение камеры, focus и aperture
+- Рендер в в формате ppm сохраняет построчно в framebufer и осуществляет gamma-коррекцию
